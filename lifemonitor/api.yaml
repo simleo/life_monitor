@@ -101,5 +101,9 @@ components:
       properties:
         name:
           type: string
+        hub_id:
+          type: string
+        hub_base_url:
+          type: string
       required:
         - name

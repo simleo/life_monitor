@@ -34,6 +34,7 @@ def config_db_access(flask_app):
 class Workflow(db.Model):
     workflow_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(), nullable=False)
+    test_dir = db.Column(db.String())
 
     def __repr__(self):
         return '<Workflow {:r}; name: {:r}>'.format(self.workflow_id, self.name)

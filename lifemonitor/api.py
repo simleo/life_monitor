@@ -2,6 +2,8 @@
 
 import os
 import uuid
+import zipfile
+import tempfile
 
 import connexion
 import sqlalchemy
@@ -9,6 +11,7 @@ import sqlalchemy
 from lifemonitor import config, models
 from lifemonitor.config import logger
 from lifemonitor.models import db
+from lifemonitor.wfhub import Client as HubClient
 
 WORK = {}
 
@@ -21,6 +24,22 @@ def _row_to_dict(row):
     return d
 
 
+def _get_test_dir(hub_id, hub_base_url):
+    client = HubClient(hub_base_url)
+    workflow = client.get_workflow(hub_id)
+    blob = workflow["attributes"]["content_blobs"][0]
+    if blob["original_filename"].endswith(".crate.zip"):
+        # TODO: how to do this for real? Save zip as blob in database?
+        wd = tempfile.mkdtemp(prefix="ro_crate_test_")
+        path = client.download_workflow(workflow, "/tmp")
+        crate_dir_bn = os.path.basename(path).split(".", 1)[0]
+        crate_dir = os.path.join(wd, crate_dir_bn)
+        with zipfile.ZipFile(path, "r") as zipf:
+            zipf.extractall(crate_dir)
+        return crate_dir
+    return None
+
+
 def workflows_get():
     results = models.Workflow.query.all()
     logger.debug("workflows_get. Got %s workflows", len(results))
@@ -28,9 +47,19 @@ def workflows_get():
 
 
 def workflows_post(body):
+    logger.info("workflow body: %s", body)
+    try:
+        hub_base_url = body["hub_base_url"]
+        hub_id = body["hub_id"]
+    except KeyError:
+        test_dir = None
+    else:
+        test_dir = _get_test_dir(hub_base_url, hub_id)
+        logger.info("test_dir: %s", test_dir)
     w = models.Workflow(
         workflow_id=uuid.uuid4(),
-        name=body['name'])
+        name=body['name'],
+        test_dir=test_dir)
     logger.debug("workflows_post. Created workflow with name '%s'", w.name)
     db.session.add(w)
     db.session.commit()
