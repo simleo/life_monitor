@@ -4,15 +4,17 @@ Please note this is a draft, subject to change. You can leave any comments [here
 
 Workflow Testing RO-Crate is a specialization of [Workflow RO-Crate](https://about.workflowhub.eu/Workflow-RO-Crate/) that supports additional metadata related to the testing of computational workflows. [LifeMonitor](index) uses this as an exchange format that allows RO-Crate authors to describe test suites associated with workflows.
 
+
 ## Introduction
 
-The LifeMonitor service monitors workflow tests being executed on one or more Continuous Integration (CI) services (e.g., [GitHub Actions](https://docs.github.com/en/actions)). In this case, the testing metadata specifies one or more test **instances**, corresponding to execution jobs of the test suite on the testing service(s). LifeMonitor also aims to aid users in setting up such instances: for this reason, this spec also includes a formalism to describe test **definitions**, where tests are defined according to specific test **engines**, such as [Planemo](https://planemo.readthedocs.io/en/latest/test_format.html).
+LifeMonitor monitors the execution of workflow test **suites** on one or more Continuous Integration (CI) **services** (e.g., [GitHub Actions](https://docs.github.com/en/actions)). We refer to the execution of a test suite on a CI service as test **instance**. The test suite itself is usually described by a **definition** that follows the requirements of a specific test **engine**, such as [Planemo](https://planemo.readthedocs.io/en/latest/test_format.html).
+
 
 ## Concepts
 
-This section uses terminology from the [RO-Crate 1.1 specification](https://w3id.org/ro/crate/1.1), which is the basis for the Workflow RO-Crate spec.
+This section uses terminology from the [RO-Crate 1.1 specification](https://w3id.org/ro/crate/1.1), which is the basis for the Workflow RO-Crate specification.
 
-The **context** used by Workflow Testing RO-Crates is an extension of the [RO-Crate 1.1 context](https://www.researchobject.org/ro-crate/1.1/context.jsonld) that includes test-specific classes and properties defined in the [test RO-Terms vocabulary](https://github.com/ResearchObject/ro-terms/blob/master/test/vocabulary.csv):
+Workflow Testing RO-Crate extends the [RO-Crate 1.1 context](https://www.researchobject.org/ro-crate/1.1/context.jsonld) with types and properties defined in the [test RO-Terms vocabulary](https://github.com/ResearchObject/ro-terms/blob/master/test/vocabulary.csv):
 
 ```json
 [
@@ -37,27 +39,24 @@ The **context** used by Workflow Testing RO-Crates is an extension of the [RO-Cr
 
 The most recent version of the context is available from [https://github.com/ResearchObject/ro-terms/blob/master/test](https://github.com/ResearchObject/ro-terms/blob/master/test).
 
-A Workflow Testing RO-Crate MUST be a valid [Workflow RO-Crate](https://about.workflowhub.eu/Workflow-RO-Crate/) (e.g., it has to contain a *Main Workflow*). In addition, it COULD refer to one or more [test suites](#test-suite) from the root data entity via the `mentions` property:
+A Workflow Testing RO-Crate MUST be a valid [Workflow RO-Crate](https://about.workflowhub.eu/Workflow-RO-Crate/) (e.g., it has to contain a *Main Workflow*). In addition, it MUST refer to one or more [test suites](#test-suite) from the [root data entity](https://www.researchobject.org/ro-crate/1.1/root-data-entity.html) via the `mentions` property:
 
 ```json
 {
     "@id": "./",
     "@type": "Dataset",
     "mentions": [
-        {
-            "@id": "#test1"
-        },
-        {
-            "@id": "#test2"
-        }
+        {"@id": "#test1"},
+        {"@id": "#test2"}
     ],
     ...
 }
 ```
 
+
 ### Test suite
 
-A _test suite_ describes a set of tests for a computational workflow. It is represented by a context entity of type `"TestSuite"`. A test suite MUST refer either to one or more [test instances](#test-instance) (via the `instance` property) or to a [test definition](#test-definition) (via the `definition` property) or both. Additionally, a test suite SHOULD refer to the tested workflow via `mainEntity`.
+A _test suite_ describes a set of tests for a computational workflow. It is represented by a contextual entity of type `TestSuite`. A test suite MUST refer either to one or more [test instances](#test-instance) (via the `instance` property) or to one or more [test definitions](#test-definition) (via the `definition` property) or both. Additionally, a test suite SHOULD refer to the tested workflow via `mainEntity`.
 
 ```json
 {
@@ -65,15 +64,19 @@ A _test suite_ describes a set of tests for a computational workflow. It is repr
     "@type": "TestSuite",
     "mainEntity": {"@id": "sort-and-change-case.ga"},
     "instance": [
-        {"@id": "#test1_1"}
+        {"@id": "#test1_1"},
+        {"@id": "#test1_2"}
     ],
     "definition": {"@id": "test/test1/sort-and-change-case-test.yml"}
 }
 ```
 
+If the `mainEntity` property is missing, it is assumed that the suite refers to the main workflow (pointed to by the `mainEntity` property of the root data entity).
+
+
 ### Test instance
 
-A _test instance_ is a specific job that executes a [test suite](#test-suite) on a [test service](#test-service). It is represented by a context entity of type `"TestInstance"`. A test instance MUST refer to: a test service via the `runsOn` property; the base URL of the specific test service deployment where it runs via the `url` property; the relative URL of the test project via the `resource` property:
+A _test instance_ is a specific job that executes a [test suite](#test-suite) on a [test service](#test-service). It is represented by a contextual entity of type `TestInstance`. A test instance MUST refer to: a test service via the `runsOn` property; the base URL of the specific test service deployment where it runs via the `url` property; the relative URL of the test project via the `resource` property:
 
 ```json
 {
@@ -84,10 +87,13 @@ A _test instance_ is a specific job that executes a [test suite](#test-suite) on
     "resource": "job/tests/"
 }
 ```
- 
+
+For information on the exact format supported by LifeMonitor, see [LifeMonitor-specific features and requirements](#lifemonitor-specific-features-and-requirements).
+
+
 ### Test service
 
-A _test service_ is a software service where tests can be run. It is represented by a context entity of type `"TestService"`:
+A _test service_ is a software service where tests can be run. It is represented by a context entity of type `TestService`:
 
 ```json
 {
@@ -98,25 +104,33 @@ A _test service_ is a software service where tests can be run. It is represented
 }
 ```
 
+For information on the test services supported by LifeMonitor, see [LifeMonitor-specific features and requirements](#lifemonitor-specific-features-and-requirements).
+
+
 ### Test definition
 
-A _test definition_ is a set of metadata that describes how to run a [test suite](#test-suite). It is represented by a data entity of type `["File", "TestDefinition"]`. A test definition MUST refer to the [test engine](#test-engine) it is written for via `conformsTo` and to the engine's version via `engineVersion`:
+_Test definitions_ are the files and directories that describe how to run a [test suite](#test-suite). Each test definition is represented by a data entity whose type MUST include `TestDefinition` and  `File` (for files) or `Dataset` (for directories). A test definition SHOULD refer to the [test engine](#test-engine) it is written for via `conformsTo` and to the engine's version via `engineVersion`:
 
 ```json
 {
     "@id": "test/test1/my-test.yml",
-    "@type": [
-        "File",
-        "TestDefinition"
-    ],
+    "@type": ["File", "TestDefinition"],
     "conformsTo": {"@id": "https://w3id.org/ro/terms/test#PlanemoEngine"},
     "engineVersion": ">=0.70"
 },
 ```
 
+```json
+{
+    "@id": ".tests",
+    "@type": ["Dataset", "TestDefinition"]
+},
+```
+
+
 ### Test engine
 
-A _test engine_ is a software application that runs workflow tests according to a definition. It is represented by a context entity of type `"SoftwareApplication"`:
+A _test engine_ is a software application that runs workflow tests according to a definition. It is represented by a context entity of type `SoftwareApplication`:
 
 ```json
 {
