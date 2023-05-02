@@ -12,14 +12,12 @@ on:
       - "**"
       - "!docs/**"
       - "!examples/**"
-      - "!interaction_experiments/**"
       - "!k8s/**"
   pull_request:
     paths:
       - "**"
       - "!docs/**"
       - "!examples/**"
-      - "!interaction_experiments/**"
       - "!k8s/**"
 
 env:
